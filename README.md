@@ -1,6 +1,6 @@
 # Essay Scoring with Siamese Networks
 
-This project explores automated essay scoring using Siamese Neural Networks, with and without attention mechanisms. It is developed as part of a machine learning experiment to compare textual similarity and performance in scoring student essays.
+This project explores automated essay scoring using Siamese Neural Networks. It is developed as part of a machine learning experiment to compare textual similarity and performance in scoring student essays.
 
 ## 📁 Folder Structure
 
