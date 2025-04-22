@@ -13,14 +13,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 
+# Features
+# syntax_1
+# vocabulary_1
+# phraseology_1
+# grammar_1
+# conventions_1
+
+# === Feature pairs to evaluate ===
+feature_pairs = ['cohesion', 'syntax', 'vocabulary', 'phraseology', 'grammar', 'conventions']
+feature = feature_pairs[5] #simdilik convention
+
 current_file_path = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_file_path)
-
-output_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'Outputs'))
-
 # === Output directories ===
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = output_dir + f"/llama_embeddings_binary_cohesion/val__{timestamp}"
+output_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'Outputs'))
+output_dir = output_dir + f"/llama_embeddings_binary_{feature}/val__{timestamp}"
+
+#output_dir = output_dir + f"/llama_embeddings_binary_cohesion/val__{timestamp}"
 os.makedirs(output_dir + '/h5models/', exist_ok=True)
 os.makedirs(output_dir + '/csvs/', exist_ok=True)
 os.makedirs(output_dir + '/figs/', exist_ok=True)
@@ -37,7 +48,8 @@ label_df = pd.read_csv(label_path)
 embed_df = pd.merge(
     embed_df,
     #label_df[["text_id_1", "text_id_2", "mean_score_1", "mean_score_2", "score_diff"]],
-    label_df[["text_id_1", "text_id_2", "cohesion_1", "cohesion_2"]],
+    # label_df[["text_id_1", "text_id_2", "cohesion_1", "cohesion_2"]],
+    label_df[["text_id_1", "text_id_2", f"{feature}_1",  f"{feature}_2"]],
     on=["text_id_1", "text_id_2"],
     how="left"
 )
@@ -45,7 +57,8 @@ embed_df = pd.merge(
 # Recalculate better essay from mean scores
 embed_df["true_label"] = embed_df.apply(
     #lambda row: 1 if row["mean_score_1"] > row["mean_score_2"] else (2 if row["mean_score_2"] > row["mean_score_1"] else 0),
-    lambda row: 1 if row["cohesion_1"] > row["cohesion_2"] else (2 if row["cohesion_2"] > row["cohesion_1"] else 0),
+    #lambda row: 1 if row["cohesion_1"] > row["cohesion_2"] else (2 if row["cohesion_2"] > row["cohesion_1"] else 0),
+    lambda row: 1 if row[f"{feature}_1"] > row[f"{feature}_2"] else (2 if row[f"{feature}_2"] > row[f"{feature}_1"] else 0),
     axis=1
 )
 
@@ -107,7 +120,7 @@ history = model.fit(
     [X1_train, X2_train], y_train,
     validation_data=([X1_test, X2_test], y_test),
     epochs=50,
-    #epochs=5,
+    #epochs=5, # for demo purposes only
     batch_size=32,
     callbacks=[early_stop, model_checkpoint]
 )
@@ -129,8 +142,10 @@ results_df = pd.DataFrame({
     # "mean_score_1": filtered_test_df["mean_score_1"],
     # "mean_score_2": filtered_test_df["mean_score_2"],
     # "score_diff": filtered_test_df["score_diff"],
-    "cohesion_1": filtered_test_df["cohesion_1"],
-    "cohesion_2": filtered_test_df["cohesion_2"],
+    # "cohesion_1": filtered_test_df["cohesion_1"],
+    # "cohesion_2": filtered_test_df["cohesion_2"],
+    f"{feature}_1": filtered_test_df[f"{feature}_1"],
+    f"{feature}_2": filtered_test_df[f"{feature}_2"],
     "true_label": true_classes,
     "predicted_label": predicted_classes,
     "prob_essay1_better": predictions[:, 0],
@@ -155,7 +170,8 @@ pd.DataFrame(conf_matrix,
 y_score = predictions[:, 1]  # essay2 better
 fpr, tpr, _ = roc_curve(true_classes, y_score)
 roc_auc = auc(fpr, tpr)
-print(f"✅ Accuracy: {acc:.4f} | AUC: {roc_auc:.4f}")
+#print(f"✅ Accuracy: {acc:.4f} | AUC: {roc_auc:.4f}")
+print(f"✅ Accuracy for {feature}: {acc:.4f} | AUC: {roc_auc:.4f}")
 
 # Plot
 plt.figure(figsize=(8, 6))
